@@ -1,0 +1,434 @@
+---
+title: "TD3 - Les régressions"
+author: "Alexis Ruffault"
+date: "21/07/2021"
+output:
+  html_document: 
+    number_sections: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+#packages
+library(knitr)
+library(formatR)
+
+## Global options
+options(max.print="75")
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE,
+	cache = TRUE,
+	comment = NA,
+	prompt = FALSE,
+	tidy = TRUE
+)
+
+library(tidyverse)
+library(readxl)
+library(readr)
+library(forcats)
+library(naniar)
+library(table1)
+library(lubridate)
+library(car)
+library(tseries)
+library(lmtest)
+library(QuantPsyc)
+library(nlme)
+library(kableExtra)
+
+#data
+load(file = "pappo-dataset.rda")
+load(file = "chabitt-dataset.rda")
+
+```
+
+# Menu {.tabset}
+
+> Dans ce TD, on donnera systématiquement un nom d'objet aux modèles testés. Pour cela, il faudra utiliser un le code `model01 <- formule` puis appeler un résumé de l'objet `summary(model01)` dans une ligne du code pour avoir le résultat.
+
+## Simples
+
+<h2>Régression linéaire simple</h2>
+<h3>N ~ N</h3>
+
+Les modèles de régression linéaire simple s'apparentent à des tests de corrélation puisqu'ils testent les relations entre deux variables continues. A la différence des tests de corrélation, les modèles de régression permettent de tester la qualité de l'ajustement du modèle simple, et ce de manière asymétrique.
+
+En effet, le modèle de régression permet de "prédire" les variations d'une variable numérique (**variable réponse**), par les variations d'une (régression simple) ou plusieurs (régression multiple) variables numériques (**variables prédictrices**).
+
+### Les conditions d'application
+
+Une fois que le modèle de régression est paramétré, il convient de vérifier ses **conditions d'application**, pour voir si le modèle testé s'ajuste bien aux données. Pour ce faire, il faut vérifier les résidués du modèle :
+
+- indépendance des résidus
+- distribution *normale* des résidus
+- variances homogènes des résidus
+- pas de points atypiques dans les résidus (outliers)
+
+### La formule
+
+La fonction pour paramétrer le modèle est `lm`. La formule s'écrit comme suit : `reponse ~ predicteur`
+
+Afin de vérifier graphiquement les résidus, il convient de lancer la commande `par(mfrow=c(2,2))` (pour que les 4 graphiques soient visibles), puis `plot(model)` (en précisant le nom du modèle).
+
+**Residuals vs Fitted** (premier plot) : La courbe de lissage (en rouge) doit suivre la ligne horizontale (residuals = 0) ; si elle se déporte trop, il y aurait un problème de dépendance. Les observations qui s'écartent le plus de la courbe de lissage (points dont le numéro apparaît) sont les observations les moins bien ajustées par le modèle. Si on omet ces observations, la forme du nuage ne doit pas avoir une forme de cône, sinon le modèle pourrait avoir un problème d'homoscédasticité.
+
+**Normal Q-Q** (deuxième plot) : Les points (résidus standardisés) ne doivent pas trop s'écarter de la diagonale (droite de Henry). Si les résidus suivent bien la droite, cela signifie que leur dispersion suit une loi normale.
+
+**Scale-Location** (troisième plot) : La courbe rouge doit être la plus horizontale possible pour considérer que les variances des résidus sont homogènes.
+
+**Residuals vs Leverage** (quatrième plot) : Sur l'axe Y, plus le point s'éloigne de 0, moins le modèle arrive à l'expliquer. Sur l'axe X, plus le point est à droite, plus il est singulier et distinct des autres points. Les points se trouvant en haut à droite ou en bas à droite (dans l'aire délimitée par les pointillées rouges) sont à surveiller pour dans l'interprétation du modèle.
+
+Il est cependant primordial de tester statistiquement les conditions d'application du modèle.
+
+**Indépendance**  :le test de *Durbin-Watson* (`durbinWatsonTest(model)`, dans `library(car)`) permet de tester l'indépendance des résidus : si la valeur du D-W est proche de 2 et que le `p` est supérieurà 0.05, alors les résidus sont bien indépendants.
+
+**Normalité** (résidus) : `library(Tseries)` puis `jarque.bera.test(model$res)`. Ce test s'interprète comme le test de *Shapiro*. La distribution des résidus suit une loi normale si le résultat de ce test est non-significatif (`p>0.05`). Si les résidus ne suivent pas une loi normale, il est possible de transformer les variables dans le modèle avec la fonction `Normalize` du package `QuantPsyc`.
+
+**Homogénéité** (variances ; ou homoscédasticité des résidus) : `library(lmtest)` puis `bptest(model)`. Les variances des résidus sont homogènes si le résultat de ce test est non-significatif (`p>0.05`). Si les résidus n'ont pas des variances homogènes, il est possible de transformer les variables dans le modèle avec la fonction `Normalize` du package `QuantPsyc`.
+
+**Outliers** : `library(car)` puis `outlierTest(model)`. Le résultat de ce test contient une ligne par outlier (point qui s'éloigne trop du groupe). La valeur du `p` de Bonferroni doit être supérieure à 0.05 pour que le point soit considéré comme bien ajusté au modèle.
+
+> **Et si les conditions ne sont pas rencontrées ?** Il convient de faire un modèle avec la méthode généralisée des moindres carrées, avec la commande `gls` du package `nlme` (la formule est la même que pour `lm`)
+
+### A vous de jouer !
+
+> **Exercice** : Tester un modèle `model1` prédisant le nombre de minutes à pratiquer des activités physiques intenses (variable `IPAQ_V_M`) par le score d'autodétermination (variable `RAI`). Qu'est-ce que vous observez ? Est-ce que le modèle est bien applicable aux données ?
+
+```{r regression simple}
+
+# On prépare le modèle
+
+
+# On regarde les graphiques des résidus
+
+
+# On teste les conditions d'application
+
+
+```
+
+### Comment lire les résultats ?
+
+L'*output* qui apparaît dans la console est composé de 4 parties : un rappel de la formule du modèle, les quartiles des résidus du modèles, les coefficients de régression des résidus et des variables prédictrices, et les indices d'ajustement du modèle.
+
+Le coefficient de chaque prédicteur s'interprète en considérant les autres prédicteurs constants. La colonne `estimate` indique le coefficient de régression du prédicteur, et la colonne `Pr(>|t|)` donne le degré de significativité du coefficient de régression dans son association avec la variable réponse.
+
+Les deux dernières lignes indiquent le pourcentage de variance de la variable réponse expliqué par le modèle (`Multiple R-squared`), sa valeur "ajustée", et un test *F* du modèle qui indique si le modèle explique une part significative de la variance de la variable réponse `p-value`.
+
+### On conclut ?
+
+> **Exercice** : Quelle conclusion tirez-vous ?
+
+
+## Multiples
+
+<h2>Régression linéaire multiple</h2>
+<h3>N ~ ...</h3>
+
+Les modèles de régression linéaire multiple fonctionnent exactement comme les modèles de régression linéaire simple, à la différence que ces modèles permettent de tester l'association entre une variable numérique (variable réponse) et plusieurs variables numériques ou catégorielles (variables prédictrices). L'ajustement du modèle permet d'estimer le pourcentage de variance de la variable réponse expliqué par les variations des variables prédictrices.
+
+### Les conditions d'application
+
+Pour remplir les conditions d'application d'un modèle linéaire multiple, il faut que :
+
+- la variable réponse suive une loi normale
+- les résidus soient indépendants
+- les résidus suivent une loi normale
+- les variances des résidus soient homogènes (homoscédasticité)
+- les résidus n'incluent pas d'outliers
+- les prédicteurs soient linéaires sans colinéarité ni multi-colinéarité
+
+### La formule
+
+La fonction pour paramétrer le modèle est `lm`. Dans la formule, il convient de séparer les prédicteurs par des `+` (les `*` dans les modèles sont utiles pour tester des effets d'intéraction, comme dans les ANOVA à 2 facteurs, par exemple). Par exemple `reponse ~ predicteur1 + predicteur2 + predicteur3`.
+
+**Comme pour les analyses précédentes** : Pour tester la normalité de la distribution de la variable réponse, il faut utiliser le test de *Shapiro* `shapiro.test`. Pour tester l'indépendance des résidus, il faut utiliser le test de *Durbin-Watson* `durbinWatsonTest`. Pour tester la normalité de la distribution des résidus, il faut utiliser le test de *Jarque Bera* `jarque.bera.test`. Pour tester l'homoscédasticité des résidus, il faut utiliser le test de *Breusch-Pagan* `bptest`.
+
+**Colinéarité et multi-colinéarité** : fonction `vif` du package `car`. Le VIF (facteur d'inflation de la variance) et le 1/VIF (la tolérance) sont 2 indicateurs de la colinéarité et multi-colinéarité dans les prédicteurs du modèle. Lorsque le VIF est égal à 1, il y a absence totale de multi-colinéarité ; et lorsque le VIF est supérieur à 5, il y a une multi-colinéarité sévère (certains mettent ce seuil à 2). Lorsque la tolérance (1/VIF) est inférieur à 0.20 (certains mettent ce seuil à 0.40), il y a colinéarité ; et il y a absence totale de colinéarité lorsque la tolérance est égale à 1.
+
+En cas de colinéarité ou de multi-colinéarité, il convient de retirer du modèle les variables présentant trop de colinéarité ou de multi-colinéarité.
+
+### A vous de jouer !
+
+> **Exercice** : On cherche à prédire le temps passé par jour à pratiquer des activités physiques intenses avec les 5 scores de motivation. Testez un `model2`. Qu'est-ce que vous observez ? Est-ce que le modèle est bien applicable aux données ?
+
+```{r regression multiple}
+
+# On prépare le modèle
+
+
+# On regarde les graphiques des résidus
+
+
+# On teste les conditions d'application
+
+
+```
+
+### Comment lire les résultats ?
+
+Exactement comme les régressions linéaires simples.
+
+### On conclut ?
+
+> **Exercice** : Quelle conclusion tirez-vous ?
+
+
+
+## Stepwise
+
+<h2>Régression linéaire hiérarchique</h2>
+<h3>N ~ ... ; N ~ ...</h3>
+
+Les modèles de régression linéaire hiérarchiques permettent de tester plusieurs modèles de prédiction d'une variable réponse, avec des groupes de variables prédictrices dans un ordre donné. L'objectif est notamment de voir si en ajoutant certaines variables dans le modèle, celui-ci permet de prédire une part significativement plus grande de variance de la variable réponse.
+
+### Les conditions d'application
+
+Les conditions d'application des modèles sont exactement les mêmes que pour les régressions linéaires multiples.
+
+### La formule
+
+Il convient donc de créer plusieurs modèles linéaires pour arriver à un modèle complet : le premier avec le moins de prédicteurs, et puis un second (et éventuellement d'autres) avec, à chaque étape, un ou plusieurs prédicteurs supplémentaires.
+
+Une fois les modèles testés, il est possible de les comparer 2 à 2 pour voir si la part de variance expliquée par l'un est significativement différente de celle expliquée par l'autre. Il s'agit de la fonction `anova` (non non, ça ne veut pas dire une "ANOVA" comme vous l'entendez).
+
+### A vous de jouer !
+
+> ** Exercice** : En reprenant le `model2`, testez 3 modèles : un `model3` qui inclue uniquement l'amotivation (`BREQ_AMOT`), un `model4` dans lequel on ajoute les motivations extrinsèques (`BREQ_REXT` et `BREQ_RINTR`), et un `model5` complet dans lequel on ajoute les motivations intrinsèques (`BREQ_RIDEN` et `BREQ_INTR`). Qu'est-ce que vous observez ? Quel modèle prédit significativement plus de variance du temps passé par semaine à pratiquer des activités physiques intenses ?
+
+```{r regression hierarchique}
+
+# On prépare le modèle 3
+
+
+# On prépare le modèle 4
+
+
+# On prépare le modèle 5
+
+
+# On compare les modèles 2 par 2
+
+
+```
+
+### On conclut ?
+
+> **Exercice** : Quelle conclusion tirez-vous ?
+
+
+## Logistiques
+
+<h2>Régression logistique</h2>
+<h3>... ~ ...</h3>
+
+Les modèles de régression logistique permettent de construire des modèles de prédiction qui s'ajustent sans remplir les conditions d'application des modèles linéaires, ou pour prédire une variable catégorielle (facteur) souvent dichotomique (binaire) avec une ou plusieurs variables numériques ou catégorielles.
+
+Ces analyses sont très utilisées en épidémiologie, pour identifier les facteurs de risque d'une maladie (par exemple : le facteur `cancer` avec deux modalités `"oui"` et `"non"` qui serait prédit par l'âge (variable numérique) et le facteur `fumeur` (`"oui"`, `"non"`). L'analyse nous permet de calculer le risque d'obtenir `"oui"` à la variable `cancer` en fonction des variations de l'âge, et lorsque `fumeur = "oui"`.
+
+### Les conditions d'application
+
+Pour remplir les conditions d'application d'un modèle logistique, il faut que :
+
+- les prédicteurs soient linéaires sans colinéarité ni multi-colinéarité
+- les données influentes soient gérées
+
+### La formule
+
+La fonction à appliquer est `glm`. L'argument `family` de cette fonction permet de contrôle le type de régression logistique à appliquer en fonction de la nature de la variable réponse (binaire, numérique non normale, ...).
+
+### A vous de jouer !
+
+**Nouveau jeu de données**
+
+L'étude PreBla est une étude sur l'adoption de programmes de prévention des blessures pour des licenciés de la Fédération Française d'Athlétisme. En autre, les 7715 participants ont ainsi renseigné en ligne :
+
+- `info_age` leur âge en années
+- `info_sexe` leur sexe (`"Homme"`, `"Femme"`)
+- `info_discip2` leur discipline principale en athlétisme (`"Endurance"`, `"Explosive"`)
+- `info_discip_nbpratique` le nombre d'années d'expérience dans leur discipline principale
+- `info_discip_niveau2` leur niveau de compétition dans leur discipline principale (`"International or national"`, `"Regional"`)
+- `injury_nb` le nombre de blessures dans leur carrière (`"0"`, `"1"`, `"2"`, `"3"`, `"4 or 5"`, `"more than 5"`)
+- `injury` le moment de leur dernière blessure (`"very old or no injury"`, `"last 5 seasons"`, `"this season"`)
+- `atcd_origine` l'origine de leur dernière blessure (`"Traumatique"`, `"Overuse"`)
+- `injury_timeloss` la durée d'arrêt du sport à la suite de la dernière blessure (`"minor to moderate injury (less than 28d)"`, `"severe injury (more than 28d)"`)
+- `ipp_adh_carriere2` leur adoption d'un programme de prévention des blessures dans leur carrière (`"Yes"`, `"No"`)
+
+> **Exercice** : A partir de données de l'étude PreBla (base de données `db3`) listées si dessus, identifiez les chances d'adopter un programme de prévention des blessures (variable `ipp_adh_carriere2`) en fonction de toutes les autres variables. Avec la fonction `kable` du package `kableExtra`, faites un tableau permettant de lister les *odds ratios* (fonction `exp(coefficients(model))`) et leur intervalle de confiance (fonction `exp(confint(model))`).
+
+```{r prebla}
+
+# On charge les données (déjà bien nettoyées)
+load(file = "prebla-dataset.rda")
+
+db3 <- db3 %>% 
+  mutate(info_sexe = factor(info_sexe, levels = c("Homme", "Femme")),
+         info_discip2 = factor(info_discip2, levels = c("Endurance", "Explosive")),
+         info_discip_niveau2 = factor(info_discip_niveau2, levels = c("International or national", "Regional")),
+         injury_nb = factor(injury_nb, levels = c("0", "1", "2", "3", "4 or 5", "more than 5")),
+         injury = factor(injury, levels = c("very old or no injury", "last 5 seasons", "this season")),
+         atcd_origine = factor(atcd_origine, levels = c("Traumatique", "Overuse")),
+         injury_timeloss = factor(injury_timeloss, levels = c("minor to moderate injury (less than 28d)", "severe injury (more than 28d)")),
+         ipp_adh_carriere2 = factor(ipp_adh_carriere2, levels = c("Yes", "No")))
+
+# On paramètre le modèle
+
+
+# Conditions d'application
+
+
+# On calcule l'odds ratio et son intervalle de confiance pour chaque prédicteur
+# Le package kableExtra permet de faire de "beaux" tableaux
+
+
+```
+
+### On conclut ?
+
+> **Exercice** : Quelle conclusion tirez-vous ?
+
+
+## ANOVA
+
+<h2>Analyse de variance</h2>
+<h3>N ~ C3+ ; N ~ C*C</h3>
+
+Les ANOVA sont des cas très particuliers de régressions. Il convient de remplir des conditions d'application similaires à celles des comparaisons de groupes (test *t* par exemple) dans le cas d'une ANOVA à un seul facteur, ainsi que les conditions d'application similaires aux régressions linéaires multiples dans le cas d'une ANOVA à 2 facteurs.
+
+Ces analyses sont utilisées lorsque l'on veut voir les variations d'une variable numérique soit en fonction des niveaux d'un facteur (s'il y a 3 niveaux ou plus au facteur), soit en fonction des intéractions entre 2 facteurs (par exemple, le groupe expérimental et le temps de passation d'un test).
+
+### Les conditions d'application
+
+**ANOVA à un facteur**
+
+- homogénéité des variances : `bartlett.test`
+- normalité de la distribution : `shapiro.test`
+
+**ANOVA à 2 facteurs ou plus**
+
+- homogénéité des variances (`bartlett.test`)
+- normalité de la distribution (`shapiro.test`)
+- résidus indépendants : `durbinWatsonTest`
+- résidus suivant une loi normale : `jarque.bera.test`
+- variances des résidus homogènes : (homoscédasticité) `bptest`
+- résidus sans outliers : `outlierTest`
+- pas de colinéarité ni multi-colinéarité : `vif` et `1/vif`
+
+### La formule
+
+**ANOVA à un facteur**
+
+Il convient d'abord de créer un modèle linéaire simple qui cherche à prédire une variable numérique par une variable catégorielle avec la fonction `lm`. Ensuite, on applique la fonction `anova` à notre modèle pour voir l'effet principal de la variable catégorielle sur la variable numérique.
+
+Enfin, pour vérifier les associations 2 par 2 entre les différents niveaux de la variable catégorielle, il faut suivre la formule `TukeyHSD(aov(model), ordered = TRUE)`. Ces comparaisons 2 par 2 s'appellent des tests post-hoc.
+
+Si nous ne sommes pas dans les conditions pour appliquer une ANOVA, il existe des alternatives :
+
+- `kruskal.test` puis `pairwise.wilcox.test` avec l'argument `exact = FALSE` si la distribution n'est pas normale
+- `oneway.test` puis `pairwise.wilcox.test` avec l'argument `pool.sd = FALSE` si les variances ne sont pas homogènes
+
+**ANOVA à 2 facteurs ou plus**
+
+Il convient d'abord de créer un modèle linéaire multiple qui cherche à prédire une variable numérique par l'intéraction de 2 variables catégorielles avec la fonction `lm` (par exemple `lm(numerique ~ factor1 * factor2)`). Ensuite, on applique la fonction `anova` à notre modèle pour voir l'effet principal de chaque facteur sur la variable numérique et l'effet de l'intéraction entre les 2 facteurs sur la variable numérique.
+
+Enfin, pour vérifier les associations 2 par 2 entre les différents niveaux des 2 facteurs, il faut suivre la formule `TukeyHSD(aov(model), ordered = TRUE)`. Ces comparaisons 2 par 2 s'appellent des tests post-hoc.
+
+**Attention** : il est impossible de faire une ANOVA à plusieurs facteurs si les conditions d'application ne sont pas remplies.
+
+### A vous de jouer !
+
+**Nouveau jeu de données**
+
+On crée un nouveau jeu de données fictives `prebla` à partir de la base de données `db3`, de sorte à avoir :
+
+- un facteur `temps` avec 3 modalités (`"T0"`, `"T1"`, `"T2"`)
+- un facteur `groupe` avec 2 modalités (`"controle"`, `"experimental"`)
+- 4 variables numériques (`intentions`, `attitudes`, `normesSubjectives`, `controlePercu`)
+
+```{r prebla2}
+
+# On crée un nouveau jeu de données fictives
+
+
+```
+
+> **Exercice 1** : Sur quelle(s) variable(s) observez-vous une évolution de l'ensemble de vos participants entre les 3 temps de mesure ?
+
+**TIPS**
+
+- pensez à vérifier les conditions d'application
+- pensez à voir les différence 2 par 2 (post-hoc)
+
+```{r anova1}
+
+# On vérifie les conditions
+
+# On prépare les modèles
+
+# Conditions d'application des modèles
+
+# On lance l'ANOVA
+
+```
+
+> **Exercice 2** : Sur quelle(s) variable(s) observez-vous une différence entre les 2 groupes dans leur évolution entre les 3 temps de mesure ?
+
+**TIPS**
+
+- pensez à vérifier les conditions d'application
+- pensez à voir les différence 2 par 2 (post-hoc)
+
+```{r anova2}
+
+# On vérifie les conditions
+
+# On prépare les modèles
+
+# Conditions d'application des modèles
+
+# On lance l'ANOVA
+
+```
+
+### On conclut ?
+
+> **Exercice** : Quelle conclusion tirez-vous ?
+
+**Exercice 1**
+
+**Exercice 2**
+
+### Les graphiques et tableaux
+
+**Pour faire des graphiques d'intéractions**
+
+Pas beaux, mais rapides
+
+```{r interactions}
+
+# library(RcmdrMisc)
+# plotMeans(prebla$intentions, prebla$temps, prebla$groupe)
+# plotMeans(prebla$attitudes, prebla$temps, prebla$groupe)
+# plotMeans(prebla$normesSubjectives, prebla$temps, prebla$groupe)
+# plotMeans(prebla$controlePercu, prebla$temps, prebla$groupe)
+
+```
+
+**Pour faire des tableaux sur les post-hoc**
+
+Pour avoir la moyenne et les indices de dispersion de chaque variable numérique pour chaque croisement de modalité des 2 facteurs.
+
+```{r tableaux}
+
+# Avec table1
+
+```
+
+## Et pour terminer...
+
+Si vous faites `Knit` puis `Knit to HTML`, vous devriez avoir un dossier créé dans le dossier de votre projet, dans lequel vous retrouverez les fichiers de toutes vos figures.

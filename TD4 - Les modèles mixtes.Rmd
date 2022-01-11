@@ -1,0 +1,263 @@
+---
+title: "TD4 - Les modèles mixtes"
+author: "Alexis Ruffault"
+date: "21/07/2021"
+output:
+  html_document: 
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+#packages
+library(knitr)
+library(formatR)
+
+## Global options
+options(max.print="75")
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE,
+	cache = TRUE,
+	comment = NA,
+	prompt = FALSE,
+	tidy = TRUE
+)
+
+# Utilisés pour les autres TD
+library(tidyverse)
+library(readxl)
+library(readr)
+library(forcats)
+library(naniar)
+library(table1)
+library(lubridate)
+library(car)
+library(tseries)
+library(lmtest)
+library(QuantPsyc)
+library(nlme)
+library(kableExtra)
+
+# Pour les modèles mixtes
+library(lattice)
+library(lme4)
+library(lmerTest)
+library(car)
+library(multcomp)
+library("phia")
+
+#data
+load(file = "evirap-dataset_HEC1.rda")
+
+# On nettoie la base de données
+evirap <- eviHEC1 %>%
+  mutate(PART = factor(PART),
+         DATE = dmy(DATE),
+         knowledge = factor(if_else(ENV == "HEC1CO", "yes", "no"),
+                            levels = c("no", "yes")),
+         urgency = factor(if_else(URG == "UR", "1min", "15min"),
+                          levels = c("15min", "1min")),
+         effort = factor(if_else(EFF == "3", "3rd", "1st"),
+                         levels = c("1st", "3rd")),
+         visibility = factor(if_else(VISIB == "EV", "visible", "hidden"),
+                             levels = c("visible", "hidden"))
+  ) %>%
+  dplyr::select(PART, DATE, SIM, DEC_01, PRES_T,
+               urgency, effort, visibility, knowledge)
+
+```
+
+# Introduction
+
+> Dans ce TD, on donnera systématiquement un nom d'objet aux modèles testés. Pour cela, il faudra utiliser un le code `model01 <- formule` puis appeler un résumé de l'objet `summary(model01)` dans une ligne du code pour avoir le résultat.
+
+Les modèles mixtes permettent principalement d'expliquer les variations dans une variable numérique ou binaire (c'est la variable dépendante) par des variables catégorielles et numériques, en paramètrant des variables comme étant à effet fixe, ou à effet aléatoire. Les effets fixes décrivent les relations entre les variables manipulées et la variable dépendante pour une population entière, les effets aléatoires sont spécifiques à l’échantillon.
+
+Les modèles mixtes sont principalement utilisés dans les protocoles de recherche expérimentaux dans lesquels plusieurs variables sont manipulées.
+
+## Les données
+
+L'étude **EViRAP** avait pour objectif de mieux comprendre quels étaient les facteurs environnementaux qui déterminent l'adoption de comportements actifs (par exemple, prendre les escaliers) dans des situations de la vie quotidienne, en simulation virtuelle.
+
+Ainsi, 16 participants, dont 8 qui connaissaient le bâtiment modélisé dans un environnement virtuel, ont été exposés à 8 simulations chacun. Avant chaque simulation, un scéario permettait de déterminer l'urgence de la situation et l'étage à atteindre pour se rendre à une réunion. Dans certains cas, l'escalier était caché mais accessible, dans d'autres cas il était visible mais inaccessible (avec une solution plus visible en remplacement). On mesurait à la fois la décision prise par les participants à chaque simulation (variable `DEC_01` avec `1` pour l'escalier et `0` pour l'ascenseur) et leur sentiment de présence dans l'environnement (variable `PRES_T` variant de 0 à 100).
+
+Les variables principales de l'étude, en plus de `DEC_01` et `PRES_T`, sont :
+
+- `PART` le code de participat
+- `SIM` le numéro de la simulation(dans l'ordre)
+- `urgency` l'urgence de la situation (soit `"15min"` s'il n'y avait pas d'urgence, soit `"1min"` s'il y avait urgence)
+- `effort` l'étage à atteindre (soit `"1st"` pour le 1er étage, soit `"3rd"` pour le 3ème étage)
+- `visibility` la visibilité de l'escalier (`"visible"` si l'escalier original est inaccessible mais visible avec une solution de remplacement plus visible, et `"hidden"` si l'escalier original est accessible et caché)
+- `knowledge` la connaissance préalable de l'environnement (`"no"` pour les participants qui ne connaissent pas l'environnement et `"yes"` pour ceux qui avaient déjà étudié ou travaillé dans le bâtiment)
+
+## Les conditions d'application
+
+Au contraire des ANOVA et modèles linéaires simples et multiples, les modèles mixtes ont peu de conditions d'application, et celles-ci sont principalement vérifiables une fois le modèle lancé.
+
+## La formule
+
+Il existe 2 packages de R qui permettent de tester des modèles mixtes : `nlme` (un peu vieux et lent) et `lme4` (plus récent et plus rapide). La formule ressemble à celle des modèles hiérarchiques, permettant de tester l'ajustement additionnel du modèle aux données en fonction des effets fixes ajoutés dans le modèle, étape par étape.
+
+Ainsi, si la variable dépendante est dichotomique (0 ou 1), il convient d'utiliser la fonction `glmer` en précisant l'argument `family="binomial"`. Pour les variables dépendantes continues, il convient d'utiliser la fonction `lmer`. Pour plus d'informations sur ces deux fonctions du package `lme4`, je vous invite à consulter l'aide de R.
+
+# A vous de jouer !
+
+> **Exercice** : Avec les données de l'étude `evirap`, vérifiez l'effet des variables manipulées sur la décision prise, en indiquant que les participants et l'ordre des simulations sont des variables à effet aléatoire. L'objectif sera de voir quelles sont les variables qui s'associent à l'intéraction entre l'urgence de la situation et l'effort à produire dans la prédiction de la décision prise.
+
+**TIPS**
+
+- si vous voulez voir une intéraction entre deux facteurs à effet fixe, il faut utiliser `*` au lieu de `+` dans la formule
+- pour indiquer qu'une variable est à effet aléatoire, il convient de mettre `(1|variable)` dans la formule
+- faites un premier modèle relativement simple avec les 2 principales variables manipulées `urgency` et `effort`
+- testez d'autres modèles en vérifiant l'intéraction entre les 2 principales variables de l'étude et d'autres variables de l'étude (`knowledge`, `visibility` et `PRES_T`), une par une
+- puis tester un modèle avec l'ensemble des variables manipulées, tout en conservant l'intéraction entre `urgency` et `effort`
+
+## Modèle simple
+
+### Le modèle
+
+```{r modele mixte 1}
+
+```
+
+### Les données
+
+```{r data model1}
+
+# Avec table1
+
+```
+
+### Interprétation
+
+> **Exercice** : Quelles conclusions tirez-vous ?
+
+## Intéraction
+
+### Le modèle
+
+```{r modele mixte 2}
+
+```
+
+### Interprétation
+
+> **Exercice** : Quelles conclusions tirez-vous ?
+
+**Attention** : Lorsqu'il y a une intéraction entre deux variables dans un modèle, seul l'effet d'intéraction de ces deux variables est interprétable (les effets simples des deux variables ne sont donc pas interprétables).
+
+## Ajout de la connaissance de l'environnement
+
+### Le modèle
+
+```{r modele mixte 3}
+
+```
+
+### Les données
+
+```{r data model3}
+
+# Avec table1
+
+```
+
+### Interprétation
+
+> **Exercice** : Quelles conclusions tirez-vous ?
+
+## Ajout de la connaissance de la visibilité des escaliers
+
+### Le modèle
+
+```{r modele mixte 4}
+
+```
+
+### Les données
+
+```{r data model4}
+
+# Avec table1
+
+```
+
+### Interprétation
+
+> **Exercice** : Quelles conclusions tirez-vous ?
+
+## Ajout du sentiment de présence
+
+### Le modèle
+
+```{r modele mixte 5}
+
+```
+
+### Les données
+
+```{r data model5}
+
+# Avec table1
+
+```
+
+### Interprétation
+
+> **Exercice** : Quelles conclusions tirez-vous ?
+
+## Ajout de l'ensemble des variables
+
+### Le modèle
+
+```{r modele mixte 6}
+
+```
+
+### Les données
+
+```{r data model6}
+
+# Avec table1
+
+```
+
+### Interprétation
+
+> **Exercice** : Quelles conclusions tirez-vous ?
+
+## Comparaison des modèles
+
+> **Exercice** : Maintenant que plusieurs modèles ont été paramétrés, comparez-les 2 à 2 pour identifier celui qui s'ajuste le mieux aux données.
+
+**TIPS**
+
+- la fonction `anova` utilisée pour les modèles hiérarchiques est à utiliser
+- si un modèle s'ajuste mieux qu'un autre, conservez-le pour le comparer au suivant
+
+```{r anova modeles}
+
+```
+
+## On conclut ?
+
+> **Exercice** : Quelle conclusion tirez-vous ?
+
+## Représentation graphique
+
+Le modèle avec le moins de variables, mais qui s'ajuste le mieux aux données est le `model3` avec l'effet d'intéraction entre `urgency` et `effort` associé à `knowledge`. On va donc en créer une représentation graphique avec la fonction `interactionMeans` puis `plot`.
+
+```{r graph interaction}
+
+```
+
+# Et pour terminer...
+
+Si vous faites `Knit` puis `Knit to HTML`, vous devriez avoir un dossier créé dans le dossier de votre projet, dans lequel vous retrouverez les fichiers de toutes vos figures.

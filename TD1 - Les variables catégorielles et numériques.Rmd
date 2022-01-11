@@ -1,0 +1,226 @@
+---
+title: "TD1 - Les variables catégorielles et numériques"
+author: "Alexis Ruffault"
+date: "21/07/2021"
+output:
+  html_document: 
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+#packages
+library(knitr)
+
+## Global options
+options(max.print="75")
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE,
+	cache = TRUE,
+	comment = NA,
+	prompt = FALSE,
+	tidy = TRUE
+)
+
+library(tidyverse)
+library(readxl)
+library(readr)
+library(forcats)
+library(naniar)
+library(table1)
+
+#data
+pappo <- read_excel("PAPPOdata.xlsx")
+
+```
+
+# Les "règles" du cours
+
+Le cours est composé de fichiers au format RMarkdown (`.Rmd`) qui contiennent à la fois du texte (parfois mis en forme avec le langage Markdown, qui s'apparente parfois au HTML), et des *chunks* (gris) qui contiennent du code R.
+
+Dans le projet R "Stats R - Ruffault", vous trouverez également un fichier au format Excel (`PAPPOdata.xlsx`), un fichier CSV (`ChaBITT-BDD_determinants-Basket.csv`) et 2 fichiers au format RData (`prebla-dataset.rda` et `evirap-dataset_HEC1.rda`) que nous utiliseront plus tard.
+
+Dans ce cours, vous apprendrez d'abord à importer un jeu de données et à faire quelques manipulations dessus, pour ensuite les exporter au format `.rda`. 
+
+Ensuite, vous apprendrez à mener différentes analyses statistiques, à appliquer en fonction de la question à laquelle vous voulez répondre, et en fonction de la nature de vos données.
+
+Dans tous les cas, faites les exercices les uns après les autres, dans l'ordre, pour ne rien louper.
+
+## Les bons réflexes
+
+Il faut toujours que vous travailliez dans le projet "Stats R - Ruffault" (vous pouvez vérifier que vous êtes bien dedans en regardant tout en haut à droite de votre fenêtre RStudio).
+
+Il ne faut surtout pas que le dossier du projet R sur lequel vous travaillez soit dans le bureau de votre ordinateur : mettez-le dans un dossier de vos documents.
+
+**Si vous avez des erreurs**
+
+- relisez attentivement votre code
+- vérifiez que les packages sont bien installés (`install.packages`) et appelés (`library`)
+- lisez l'aide du package ou de la fonction que vous utilisez
+- demandez à google
+- appelez moi pour que je regarde avec vous
+
+**Quand vous avez terminé de travailler sur un projet R, pensez toujours à faire dans l'ordre**
+
+- Sauvegardez votre script (son titre ne doit pas être rouge)
+- Fermez tous les onglets en haut à gauche
+- `Session > Clear workspace...`
+- `Session > Restart R`
+- Cliquez sur le nom du projet en haut à droite de la fenêtre puis `Close project`
+- Fermez RStudio
+
+**Quand vous revenez sur votre script plus tard**
+
+- Cliquez sur le fichier qui est au format `.Rproj`
+- Dans RStudio, dans le panneau `Files`, cliquez sur le fichier au format `.Rmd` sur lequel vous voulez travailler
+- Lancez le script
+
+Vous pouvez mettre des `#` devant les lignes de scripts que vous ne voulez pas lancer.
+
+# Le jeu de données PAPPO
+
+L'étude **PAPPO** s'intéressait aux liens entre les capacités de pleine conscience et la motivation à pratiquer des activités physiques. L'article de cette étude est disponible ici : https://doi.org/10.1007/s12671-015-0467-7
+
+Les participants (des jeunes adultes) étaient invités à répondre à une batterie de questionnaires psychométriques et à renseigner certaines informations socio-démographiques. Le questionnaire **BREQ** (*Behavioral Regulation toward Exercice Questionnaire*) mesurait la motivation à pratiquer des activités physiques, et le questionnaire **IPAQ** (*International Physical Activity Questionnaire*) mesurait le niveau d'activité physique des participants. Les capacités de pleine conscience étaient mesurées également, mais vous ne les trouverez pas dans le jeu de données `pappo`.
+
+Dans le jeu de données `pappo`, vous trouverez les variables suivantes :
+
+- `NUM` le numéro des participants
+- `AGE` l'âge en années
+- `SEX` le sexe (`H` pour les hommes et `F` pour les femmes)
+- `TAI` la taille en centimètres
+- `POI` le poids en kilogrammes
+- `SPO` la pratique de sport en club (`O` pour oui et `N` pour non)
+- `BREQ_AMOT` l'amotivation (absence de motivation)
+- `BREQ_REXT` la motivation extrinsèque
+- `BREQ_RINTR` la régulation introjectée
+- `BREQ_RIDEN` la régulation identifiée
+- `BREQ_INTR` la motivation intrinsèque
+- `IPAQ_V_D` le nombre de jours par semaine à pratiquer des activités physiques intenses
+- `IPAQ_V_M` le nombre de minutes par jour à pratiquer des activités physiques intenses
+- `IPAQ_M_D` le nombre de jours par semaine à pratiquer des activités physiques modérées
+- `IPAQ_M_M` le nombre de minutes par jour à pratiquer des activités physiques modérées
+- `IPAQ_W_D` le nombre de jours par semaine à marcher au moins 10 minutes
+- `IPAQ_W_M` le nombre de minutes par jour à marcher au moins 10 minutes
+- `IPAQ_S` le nombre de minutes passées assis au cours d'une journée
+
+# Premières manipulations
+
+> Après chaque manipulation, faire un `summary` des variables manipulées ou créées (`summary(pappoX$variable)`, remplacez X par le bon numéro de jeu de données) pour vérifier que tout à bien fonctionné.
+
+**TIPS**
+
+- L'ensemble des *TIPS* vous permettent de mobiliser vos connaissances en recherche dans l'aide RStudio et sur les différents sites internet d'entraide (accessibles notamment via Google)
+
+## Vérifier la base de données
+
+> **Exercice** : Vérifiez la structure de chaque variable. Assurez-vous que les variables numériques soient bien numériques, et que les variables catégorielles soient bien des facteurs. Faites les modifications nécessaires si vous remarquez quelque chose.
+
+**TIPS**
+
+- la fonction `summary` peut être utile pour vérifier que les variables catégorielles sont bien des facteurs (`SEX` et `SPO`)
+- la fonction `class` également
+- pour faire des modifications dans le jeu de données `pappo`, la fonction `mutate` (et `mutate_if`) du `tidyverse` peut être utile
+- le package `forcats` est également utilisé pour travailler sur les paramètres des facteurs
+
+```{r datamanagement1}
+
+# Pour ne pas écraser le jeu de données pappo, créez un jeu de données pappo2
+
+
+```
+
+## Corriger les erreurs
+
+> **Exercice** : La variable `IPAQ_S` devrait être une variables numérique, et les valeurs `NSP` devraient être considérées manquantes. Faites les modifications nécessaires.
+
+**TIPS**
+
+- c'est pas super de modifier le fichier Excel, même si c'est très simple
+- le package `naniar` peut être très utile
+- pensez à faire en sorte que la variable `IPAQ_S` soit bien numérique
+
+```{r datamanagement2}
+
+# Pour ne pas écraser le jeu de données pappo2, créez un jeu de données pappo3
+
+
+```
+
+## Calculer de nouvelles variables (numériques)
+
+> **Exercice** : Nous aurons besoin de connaître l'indice de masse corporelle (variable `IMC`) des participants, leur niveau d'autodétermination (variable `RAI`), et leur dépense énergétique par semaine (variable `IPAQ_T`). Ajoutez donc ces variables dans le jeu de données `pappo`.
+
+**TIPS**
+
+- la fonction `mutate` vous sera très utile
+- l'IMC est en kg/m2
+- le niveau d'autodétermination se calcule avec un coefficient -3 pour l'amotivation, -2 pour la motivation extrinsèque, -1 pour la régulation introjectée, +2 pour la régulation identifiée et +3 pour la motivation intrinsèque
+- la dépense énergétique se calcule en multipliant le nombre de minutes par le nombre de jours de chaque intensité d'activité physique, avec un coefficient 8 pour les activités intenses, 4 pour les activités modérées et 3.3 pour la marche
+
+```{r datamanagement3}
+
+# Pour ne pas écraser le jeu de données pappo3, créez un jeu de données pappo4
+
+
+```
+
+## Créer des facteurs (variables catégorielles)
+
+> **Exercice** : Nous souhaitons créer des catégories de participants en fonction de leur `IMC` et de leur `RAI`. Pour l'`IMC`, nous souhaitons créer 4 groupes de participants en créant variable `IMC4c` (facteur) : les niveaux du facteur seront `maigreur`, `normal`, `surpoids` et `obese`. Pour le `RAI`, nous souhaitons créer 2 groupes de participants en créant la variables `RAI2c` (facteur) : les individus présentant des motivations `controlee` et les individus présentant des motivation `autonome`. Ajoutez donc ces variables dans le jeu de données `pappo`.
+
+**TIPS**
+
+- la fonction `mutate` vous sera très utile
+- les fonctions `factor` et `if_else` ou `case_when` aussi
+- Maigreur si l'IMC est strictement inférieur à 18.5
+- Poids normal si l'IMC est supérieur ou égal à 18.5 et strictement inférieur à 25
+- Surpoids si l'IMC est supérieur ou égal à 25 et strictement inférieur à 30
+- Obèse si l'IMC est supérieur ou égal à 30
+- Motivation contrôlée si le RAI est inférieur ou égal à 0
+- Motivation autonome si le RAI est strictement supérieur à 0
+
+```{r datamanagement4}
+
+# Pour ne pas écraser le jeu de données pappo4, créez un jeu de données pappo5
+
+
+```
+
+# Créer un premier tableau pour voir les tendances
+
+> **Exercice** : On s'intéresse maintenant aux différences entre les hommes et les femmes, pour les variables suivantes `AGE`, `IMC`, `IMC4c`, `SPO`, `RAI`, `RAI2c` et `IPAQ_T`. Créez un tableau pour visualiser les tendances.
+
+**TIPS**
+
+- le package `table1` peut être utile
+
+```{r table1}
+
+
+```
+
+# Et pour terminer...
+
+> Maintenant que votre jeu de données et propre et complet, vous pouvez écraser l'objet `pappo` par l'objet `pappo5`. Puis il est conseillé d'enregistrer l'objet `pappo` au format `.rda`. Nommez ce fichier `pappo-dataset.rda`.
+
+**TIPS**
+
+- le format `.rda` permet de conserver le format des données telles qu'elles ont été paramétrées dans R : les facteurs seront bien reconnus comme des facteurs lors de l'ouverture du fichier `.rda`
+- la fonction `save` sera utile pour enregistrer l'objet `pappo` au format `.rda`
+
+```{r saving the dataset}
+
+
+```
+
+**Production de votre TD en HTML**
+
+Si vous faites `Knit` puis `Knit to HTML`, vous devriez avoir un fichier HTML dans votre dossier "Stats R - Ruffault" avec l'ensemble du cours mis en forme et tous vos codes et sorties R (ce qui est habituellement dans la console).

@@ -1,0 +1,279 @@
+---
+title: "TD2 - Les premiers tests statistiques"
+author: "Alexis Ruffault"
+date: "21/07/2021"
+output:
+  html_document: 
+    number_sections: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+#packages
+library(knitr)
+library(formatR)
+
+## Global options
+options(max.print="75")
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE,
+	cache = TRUE,
+	comment = NA,
+	prompt = FALSE,
+	tidy = TRUE
+)
+
+library(tidyverse)
+library(readxl)
+library(readr)
+library(forcats)
+library(naniar)
+library(table1)
+library(lubridate)
+library(fmsb)
+library(ggplot2)
+
+#data
+# load(file = "pappo-dataset.rda")
+
+```
+
+# Menu {.tabset}
+
+> Dans ce TD, on donnera systématiquement un nom d'objet aux tests statistiques effectués. Pour cela, il faudra utiliser un le code `test1 <- test(var1, var2)` puis appeler l'objet `test01` dans une ligne du code pour avoir le résultat.
+
+## N ~ C2 (ind)
+
+<h2>Comparer deux groupes indépendants sur une variable numérique</h2>
+
+### Les étapes
+
+Quand on veut tester statistiquement si la différence d'une variable numérique (par exemple l'âge) est significative ou non entre deux modalités d'un facteur (variable catégorielle, par exemple le sexe), il convient de vérifier si :
+
+- la taille de l'échantillon est supérieure à 30 ("*grand*" échantillon)
+- la distribution de la variable numérique suit une loi normale (Gauss)
+- les variances des deux modalités du facteur sont homogènes
+
+**SI** la taille de l'échantillon est grande, **ET** que la distribution de la variable numérique suit une loi normale **ET** que les variances des deux modalités du facteur sont homogènes, **ALORS** il faut faire un test **paramétrique** de comparaison de moyennes, **SINON** il faut faire un test **non-paramétrique** de comparaison de moyennes.
+
+La fonction `shapiro.test` permet de tester si la variable numérique suit une loi normale ou non. Le test de *Shapiro* sera significatif (`p < 0.05`) si la distribution de la variable numérique est significativement différente d'une distribution *normale*. On peut également observer la distribution d'une variable continue avec un histogramme en utilisant la fonction `hist`.
+
+La fonction `bartlett.test` permet de tester si les variances des deux modalités du facteur son homogènes ou non. Le test de *Bartlett* sera significatif (`p < 0.05`) si les variances des deux modalités du facteur sont significativement différentes (donc *non-homogènes*).
+
+**Attention** : si l'un des deux tests sort un résultat significatif (`p < 0.05`), ou si l'échantillon n'est pas grand, alors il faut appliquer un test non-paramétrique de comparaison de moyennes.
+
+### Les différents tests
+
+**Le test paramétrique** : *t* de *Student*, fonction `t.test` (pour échantillons appariés et non-appariés)
+
+**Le test non-paramétrique** : test de *Wilcoxon-Mann-Whitney*, fonction `wilcox.test` (pour échantillons appariés et non-appariés)
+
+### A vous de jouer !
+
+> **Exercice** : Dans le jeu de données `pappo`, est-ce que les hommes et les femmes ont un âge moyen différent ? Si oui, quel est le groupe le plus jeune (`table1` peut être utile) ? Faites une visualisation rapide des données avec la fonction `boxplot`.
+
+```{r comparaison de deux groupes indépendants}
+
+# test de normalité de la distribution de la variable AGE
+
+
+# test de l'homogénéité des variances de l'AGE en fonction du SEX
+
+
+# la normalité n'est pas respectée (shapiro.test), donc on fait un test non-paramétrique
+
+
+
+```
+
+### On conclut ?
+
+> **Exercice** : Quelle conclusion tirez-vous ?
+
+
+## N ~ C2 (app)
+
+<h2>Comparer deux groupes appariés sur une variable numérique</h2>
+
+### Les étapes
+
+Les étapes et conditions pour appliquer un test paramétrique ou non-paramétrique sont les mêmes que pour les comparaisons de 2 groupes indépendants sur une variable numérique.
+
+### Les différents tests
+
+**Le test paramétrique** : *t* de *Student*, fonction `t.test` (pour échantillons appariés et non-appariés)
+
+**Le test non-paramétrique** : test de *Wilcoxon-Mann-Whitney*, fonction `wilcox.test` (pour échantillons appariés et non-appariés)
+
+### A vous de jouer !
+
+**Nouveau jeu de données**
+
+- Le jeu de données de l'étude ChaBITT contient les données de 12 joueuses de basketball de niveau élite national
+- On a mesuré leur adoption de comportements tels que les routines d'échauffement (`ECH_CPTNonc`) et les stratégies de récupération (`REC_CPTNonc`) avec trois modalités de réponse sur le mois qui vient de s'écouler : `"Oui"`, `"Partiellement"` et `"Non"`
+- On a également mesuré leurs croyances (attitudes `ATT`, normes subjectives `NOR` et contrôle comportemental `PBC`) sur ces deux comportements et leurs intentions `INT` de les adopter au cours du mois à venir
+- La mesure de l'adoption des comportements et des croyances et intentions a été répétée à 3 temps (variable `TEMPS`) : au début de la saison `"TO"`, après 1 mois d'éducation sur l'échauffement et la récupération `"T1"`, et après 1 mois de fixation d'objectifs sur l'adoption de ces comportements `"T2"`
+
+```{r chabitt}
+
+# On importe la base de données et on la trie directement
+# Le package lubridate permet de travailler sur le format des dates et heures
+chabitt <- read_csv2("ChaBITT-BDD_determinants-Basket.csv", locale = locale(encoding = "ASCII")) %>% 
+  mutate_if(is.character, as.factor) %>% 
+  mutate(DATE = dmy(DATE),
+         WU = factor(if_else(E_CPTNonc == "Oui", "Yes",
+                             if_else(E_CPTNonc == "Non", "No", "Partially")),
+                     levels = c("Yes", "Partially", "No")),
+         ECH_CPT = if_else(E_CPTNonc == "Oui", 1,
+                           if_else(E_CPTNonc == "Non", 0, 0.5),),
+         intentionsWU = (E_INT01 + E_INT02 + E_INT03 + E_INT04)/4,
+         attitudesWU = (E_ATT01 + E_ATT02 + E_ATT03 + E_ATT04)/4,
+         subjectiveNormsWU = (E_NOR01 + E_NOR02 + E_NOR03 + E_NOR04)/4,
+         perceivedControlWU = (E_PBC01 + E_PBC02 + E_PBC03 + E_PBC04)/4,
+         RS = factor(if_else(R_CPTNonc == "Oui", "Yes",
+                             if_else(R_CPTNonc == "Non", "No", "Partially")),
+                     levels = c("Yes", "Partially", "No")),
+         REC_CPT = if_else(R_CPTNonc == "Oui", 1,
+                           if_else(R_CPTNonc == "Non", 0, 0.5)),
+         intentionsRS = (R_INT01 + R_INT02 + R_INT03 + R_INT04)/4,
+         attitudesRS = (R_ATT01 + R_ATT02 + R_ATT03 + R_ATT04)/4,
+         subjectiveNormsRS = (R_NOR01 + R_NOR02 + R_NOR03 + R_NOR04)/4,
+         perceivedControlRS = (R_PBC01 + R_PBC02 + R_PBC03 + R_PBC04)/4
+           ) %>% 
+  filter(TEMPS != "T2") %>% 
+  dplyr::select(PART, AGE, DATE, TEMPS ,WU, ECH_CPT, RS, REC_CPT,
+         intentionsWU:perceivedControlWU,
+         intentionsRS:perceivedControlRS)
+
+# On sauvegarde notre jeu de données en .rda pour le recharger facilement plus tard
+save(chabitt, file = "chabitt-dataset.rda")
+
+```
+
+Dans le jeu de données, on a :
+
+- transformé les variables `character` en `factor` avec `mutate_if`
+- mis les dates au bon format avec `dmy`
+- créé un facteur `WU` et un facteur `RS` sur la base de `ECH_CPTNonc` et `REC_CPTNonc` pour l'adoption des comportements (en anglais)
+- créé une variable continue `ECH_CPT` et une variable continue `REC_CPT` avec les valeurs `1` pour `"Yes"`, `0.5` pour `"Partially"` et `0` pour `"No"`
+- calculé les les scores de croyances et d'intentions pour les deux comportements
+- filtré les données des `TEMPS` `T0` et `T1` avec `filter`
+- selectionné les variables qui nous intéressent avec `select`
+
+> **Exercice** : Est-ce que les scores des croyances et intentions au temps 1 sont significativement différents des scores au temps 0 ? Si oui, quels ont été les changements observés ?
+
+**TIPS**
+
+- pensez à bien vérifier les conditions pour faire des tests paramétriques ou non-paramétriques
+- il convient de faire les analyses pour l'ensemble des croyances et intentions des deux comportements
+- les copier-coller et la fonction "recherche" avec `Ctrl+F` vont seront utiles
+- il est possible de faire des graphiques avec la fonction `boxplot`, ou un résumé des données avec `table1`
+
+```{r comparaison de deux groupes appariés}
+
+# warmup
+
+
+# recovery
+
+
+# en résumé (table1)
+
+
+```
+
+### On conclut ?
+
+> **Exercice** : Quelle conclusion tirez-vous ?
+
+
+## N ~ N
+
+<h2>Voir l'association entre deux variables numériques</h2>
+
+### Les étapes
+
+La seule condition à remplir pour appliqué un test paramétrique de corrélation est que les 2 variables présentent des distributions qui suivent la loi normale.
+
+### Les différents tests
+
+Le test de corrélation indique si les deux variables sont corrélées négativement (plus les valeurs de l'une sont élevées, plus les valeurs de l'autre sont faibles) ou positivement (plus les valeurs de l'une sont élevées, plus les valeurs de l'autre sont élevées), ainsi que la force de ce lien (entre -1 et 1).
+
+**Attention** : en aucun cas, le test de corrélation ne donne l'effet d'une variable sur l'autre. Les liens sont donc à interpréter de manière bi-directionnelle.
+
+**Le test paramétrique** : test de *Bravais-Pearson*, fonction `cor.test` avec l'argument `method = "pearson"`
+
+**Les tests non-paramétrique** : test de *Kendall*, fonction `cor.test` avec l'argument `method = "kendall"`, et test de *Spearman*, fonction `cor.test` avec l'argument `method = "spearman"`
+
+### A vous de jouer !
+
+> **Exercice** : Dans le jeu de données `pappo`, tester les liens entre le niveau d'activité physique (`IPAQ_T`) et les différents types de motivation (`BREQ_AMOT`, `BREQ_REXT`, `BREQ_RINTR`, `BREQ_RIDEN` et `BREQ_INTR`). Montrez des graphiques avec `plot` pour chaque test.
+
+**TIPS**
+
+- pensez à bien vérifier les conditions pour faire des tests paramétriques ou non-paramétriques
+- les copier-coller vont seront utiles
+
+```{r corrélations}
+
+
+```
+
+
+### On conclut ?
+
+> **Exercice** : Quelle conclusion tirez-vous ?
+
+
+## C ~ C 
+
+<h2>Associations entre les niveaux de 2 facteurs</h2>
+
+### Les étapes
+
+Dans un premier temps, il convient de vérifier que les variables catégorielles concernées sont bien des `factor`.
+
+Si les modalités des facteurs sont plus nombreuses que 2x2, il convient de faire un test *post-hoc* pour vérifier les associations 2 par 2.
+
+### Le test du Chi2
+
+Le test du Chi2 (fonction `chisq.test`) permet de tester l'indépendance entre deux variables catégorielles (facteurs), ou, à l'inverse, mettre en évidence des différences de répartition (différences dans les proportions).
+
+Les tests post-hoc de l'exact de *Fisher* (fonction `pairwise.fisher.test` de la *library* `fmsb`) permettent, si l'effet principal (omnibus) du Chi2 est significatif, de déterminer a posteriori quelles modalités diffèrent deux à deux.
+
+### A vous de jouer !
+
+> **Exercice 1** : Dans le jeu de données `pappo`, vérifier les liens entre le sexe des participants (variable `SEX`) et leur pratique du sport en club (variable `SPO`).
+
+**TIPS**
+
+- créer un tableau avec la fonction `table` peut alléger le code
+- un graphique peut aider à la lecture avec `ggplot` (package `ggplot2`)
+
+```{r chi2}
+
+
+```
+
+> **Exercice 2** : Dans le jeu de données `pappo`, vérifier les liens entre le statut pondéral des participants (variable `IMC4c`) et leur pratique du sport en club (variable `SPO`).
+
+```{r chi2 et fisher}
+
+
+```
+
+### On conclut ?
+
+> **Exercice** : Quelle conclusion tirez-vous ?
+
+**Exercice 1**
+
+**Exercice 2**
+
+## Et pour terminer...
+
+Si vous faites `Knit` puis `Knit to HTML`, vous devriez avoir un dossier créé dans le dossier de votre projet, dans lequel vous retrouverez les fichiers de toutes vos figures.
