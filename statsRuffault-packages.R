@@ -18,5 +18,12 @@ install.packages(c("kntitr",
                    "lmerTest",
                    "multcomp",
                    "phia",
-                   "RcmdrMisc"),
+                   "RcmdrMisc",
+                   "fmsb",
+                   "QuantPsyc",
+                   "lmtest",
+                   "tseries",
+                   "multcomp",
+                   "phia"),
                  dependencies = TRUE)
+
