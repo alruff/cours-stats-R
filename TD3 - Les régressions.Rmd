@@ -353,7 +353,20 @@ On crée un nouveau jeu de données fictives `prebla` à partir de la base de do
 ```{r prebla2}
 
 # On crée un nouveau jeu de données fictives
-
+prebla <- db3 %>% 
+  arrange(info_age) %>%
+  filter(row_number() > 2) %>% 
+  mutate(groupe_temps = ntile(info_age, 3),
+         temps = factor(if_else(groupe_temps == 1, "T0",
+                         if_else(groupe_temps == 2, "T1", "T2")),
+                        levels = c("T0", "T1", "T2"))) %>% 
+  mutate(groupe = factor(if_else(info_sexe == "Femme", "controle", "experimental"),
+                         levels = c("controle", "experimental")),
+         intentions = tpb_int,
+         attitudes = tpb_att,
+         normesSubjectives = tpb_norm,
+         controlePercu = tpb_pbc) %>% 
+  dplyr::select(temps, groupe, intentions, attitudes, normesSubjectives, controlePercu)
 
 ```
 
@@ -430,5 +443,6 @@ Pour avoir la moyenne et les indices de dispersion de chaque variable numérique
 ```
 
 ## Et pour terminer...
+
 
 Si vous faites `Knit` puis `Knit to HTML`, vous devriez avoir un dossier créé dans le dossier de votre projet, dans lequel vous retrouverez les fichiers de toutes vos figures.
